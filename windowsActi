@@ -33,8 +33,8 @@ catch {
 }
 
 # Proceed with activation
-try {
-   $tempFile = [System.IO.Path]::GetTempFileName() + ".bat"
+
+$tempFile = [System.IO.Path]::GetTempFileName() + ".bat"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/massgravel/Microsoft-Activation-Scripts/refs/heads/master/MAS/Separate-Files-Version/Activators/HWID_Activation.cmd" -OutFile $tempFile
 cmd.exe /c $tempFile
-}
+
