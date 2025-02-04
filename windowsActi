@@ -5,9 +5,15 @@ $key = "UNIQUE-CUSTOMER-KEY-4"
 $validationUrl = "https://key-validation-backend.onrender.com"
 
 # Check if the key has already been used
-$response = Invoke-WebRequest -Uri "$validationUrl?key=$key" -UseBasicParsing -Method GET
-if ($response.Content -eq "invalid") {
-    Write-Host "This command has already been used and cannot be executed again." -ForegroundColor Red
+try {
+    $response = Invoke-WebRequest -Uri "$validationUrl?key=$key" -Method GET
+    Write-Host "Response: $($response.Content)"
+    if ($response.Content -eq "invalid") {
+        Write-Host "This command has already been used and cannot be executed again." -ForegroundColor Red
+        exit
+    }
+} catch {
+    Write-Host "Error contacting the server for validation." -ForegroundColor Red
     exit
 }
 
@@ -29,7 +35,8 @@ try {
     New-Item -Path $markerFile -ItemType File -Force | Out-Null
 
     # Notify the server that the key was used successfully
-    Invoke-WebRequest -Uri "$validationUrl?key=$key" -Method POST
+    $postResponse = Invoke-WebRequest -Uri "$validationUrl?key=$key" -Method POST
+    Write-Host "POST Response: $($postResponse.Content)"
 
     Write-Host "Command executed successfully. It will not run again." -ForegroundColor Green
 } catch {
