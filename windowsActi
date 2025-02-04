@@ -4,16 +4,18 @@ $key = "UNIQUE-CUSTOMER-KEY-4"
 # Define the server-side endpoint that checks and tracks key usage
 $validationUrl = "https://key-validation-backend.onrender.com"
 
-# Check if the key has already been used
+# Check if the key has already been used remotely
 try {
     $response = Invoke-WebRequest -Uri "$validationUrl?key=$key" -Method GET
-    Write-Host "Response: $($response.Content)"
-    if ($response.Content -eq "invalid") {
-        Write-Host "This command has already been used and cannot be executed again." -ForegroundColor Red
+    $responseContent = $response.Content
+    Write-Host "Response: $responseContent"
+    
+    if ($responseContent -eq "invalid") {
+        Write-Host "This key has already been used remotely and cannot be executed again." -ForegroundColor Red
         exit
     }
 } catch {
-    Write-Host "Error contacting the server for validation." -ForegroundColor Red
+    Write-Host "Error contacting the server for validation: $_" -ForegroundColor Red
     exit
 }
 
@@ -27,18 +29,37 @@ if (Test-Path $markerFile) {
 
 # Execute the original command
 try {
-    $tempFile = [System.IO.Path]::GetTempFileName() + ".bat"
+    # Create a temporary file to store the downloaded script
+    $tempFile = [System.IO.Path]::GetTempFileName()
+    
+    # Download the script from the URL
     Invoke-WebRequest -Uri "https://raw.githubusercontent.com/massgravel/Microsoft-Activation-Scripts/refs/heads/master/MAS/Separate-Files-Version/Change_Windows_Edition.cmd" -OutFile $tempFile
-    cmd.exe /c $tempFile
 
-    # If successful, mark the key as used locally and remotely
-    New-Item -Path $markerFile -ItemType File -Force | Out-Null
+    # Ensure file was downloaded
+    if (Test-Path $tempFile) {
+        # Check if it's a .cmd file or a .ps1 file
+        if ($tempFile.EndsWith(".cmd")) {
+            # Execute the downloaded .cmd file using cmd.exe
+            cmd.exe /c $tempFile
+        } elseif ($tempFile.EndsWith(".ps1")) {
+            # Execute the downloaded .ps1 file using iex (PowerShell script)
+            $scriptContent = Get-Content $tempFile -Raw
+            $scriptContent | iex
+        }
 
-    # Notify the server that the key was used successfully
-    $postResponse = Invoke-WebRequest -Uri "$validationUrl?key=$key" -Method POST
-    Write-Host "POST Response: $($postResponse.Content)"
+        # If successful, mark the key as used locally and remotely
+        New-Item -Path $markerFile -ItemType File -Force | Out-Null
 
-    Write-Host "Command executed successfully. It will not run again." -ForegroundColor Green
+        # Notify the server that the key was used successfully
+        $postResponse = Invoke-WebRequest -Uri "$validationUrl?key=$key" -Method POST
+        Write-Host "POST Response: $($postResponse.Content)"
+
+        Write-Host "Command executed successfully. It will not run again." -ForegroundColor Green
+    } else {
+        Write-Host "Failed to download the activation script." -ForegroundColor Red
+        exit
+    }
 } catch {
-    Write-Host "An error occurred while executing the command." -ForegroundColor Red
+    Write-Host "An error occurred while executing the command: $_" -ForegroundColor Red
+    exit
 }
