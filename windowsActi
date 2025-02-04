@@ -4,7 +4,7 @@ try {
    $tempFile = [System.IO.Path]::GetTempFileName() + ".bat"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/massgravel/Microsoft-Activation-Scripts/refs/heads/master/MAS/Separate-Files-Version/Activators/Ohook_Activation_AIO.cmd" -OutFile $tempFile
 cmd.exe /c $tempFile
-    }
+    
 } catch {
     Write-Host "An error occurred while executing the command: $_" -ForegroundColor Red
     exit
